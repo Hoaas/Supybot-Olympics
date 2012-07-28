@@ -30,10 +30,25 @@ class Olympics(callbacks.Plugin):
         import base64
         return base64.b64decode(string)
     
-    def medals(self, irc, msg, args):
-        """Display current medal count for the olympics."""
+    def medals(self, irc, msg, args, optlist, optcountry):
+        """<mens|womens> <country>
+        Display current medal count for the olympics. Use --mens or --womens to display totals via gender. Specify optional country to only display that country.
+        """
+ 
+        url = None
+               
+        if optlist:
+            for (key, value) in optlist:
+                if key == 'mens':
+                    header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Mens)", 'red')
+                    url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_men.html'
+                if key == 'womens':
+                    header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Mens)", 'red')
+                    url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_women.html'
         
-        url = self._b64decode('aHR0cDovL2VzcG4uZ28uY29tL29seW1waWNzL3N1bW1lci8yMDEyL21lZGFscw==')
+        if not url: # default to all
+            header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker", 'red')
+            url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_overall.html'
         
         try:
             req = urllib2.Request(url)
@@ -43,43 +58,49 @@ class Olympics(callbacks.Plugin):
             return
             
         soup = BeautifulSoup(html)
-        h1 = soup.find('h1')
-
-        div = soup.find('div', attrs={'class':'mt-overall'}) 
-        bars = div.findAll('ul', attrs={'class':'medal-bar', 'style':'width:583px;'})
+        tbody = soup.find('tbody')
+        rows = tbody.findAll('tr', attrs={'class':re.compile('^or.*?')})
 
         object_list = []
 
-        for bar in bars:
-            country = bar.find('li', attrs={'class':'country'}).find('a')
-            gold = bar.find('li', attrs={'class':'count-g'})
-            silver = bar.find('li', attrs={'class':'count-s'})
-            bronze = bar.find('li', attrs={'class':'count-b'})
-            total = bar.find('li', attrs={'class':'total'})
+        for row in rows:
+            country = row.find('div', attrs={'class':'or-country'}).find('img')['title']
+            gold = row.find('td', attrs={'class':'or-gold or-c'})
+            silver = row.find('td', attrs={'class':'or-silver or-c'})
+            bronze = row.find('td', attrs={'class':'or-bronze or-c'})
+            total = row.find('td', attrs={'class':'or-total or-c'})
             
-            # for once, bspn has a garbage table. we compensate here. 
-            if country is not None and gold is not None and silver is not None and bronze is not None and total is not None:
-                d = collections.OrderedDict()
-                d['country'] = country.renderContents().strip()
-                d['gold'] = gold.renderContents().strip()
-                d['silver'] = silver.renderContents().strip()
-                d['bronze'] = bronze.renderContents().strip()
-                d['total'] = total.renderContents().strip()
-                object_list.append(d)
+            d = collections.OrderedDict()
+            d['country'] = country
+            d['gold'] = gold.renderContents().strip()
+            d['silver'] = silver.renderContents().strip()
+            d['bronze'] = bronze.renderContents().strip()
+            d['total'] = total.renderContents().strip()
+            object_list.append(d)
+                
+        # cheap way of only showing what someone searches for.
+        if optcountry: 
+            for each in object_list:
+                if each['country'].startswith(optcountry):
+                    output = "{0:20} G: {1:5} S: {2:5} B: {3:5} T: {4:7}".format(ircutils.underline(each['country']),\
+                        ircutils.bold(each['gold']), ircutils.bold(each['silver']), ircutils.bold(each['bronze']), ircutils.bold(ircutils.bold(each['total'])))
+                    irc.reply(output)
+                    return
 
+                 
         # red title/top
-        irc.reply(ircutils.mircColor("2012 London Summer Olympics Medal Tracker", 'red'))
+        irc.reply(header)
 
         # header for table
-        output = "{0:15} {1:5} {2:5} {3:5} {4:7}".format('Country', 'G', 'S', 'B', ircutils.bold('Total'))
+        output = "{0:20} {1:5} {2:5} {3:5} {4:7}".format('Country', 'G', 'S', 'B', ircutils.bold('Total'))
         irc.reply(output)
 
-        # iterate over the top5
-        for each in object_list[0:6]:
-            output = "{0:15} {1:5} {2:5} {3:5} {4:7}".format(each['country'], each['gold'], each['silver'], each['bronze'], ircutils.bold(each['total']))
+        # iterate over the top3
+        for each in object_list[0:3]:
+            output = "{0:20} {1:5} {2:5} {3:5} {4:7}".format(each['country'], each['gold'], each['silver'], each['bronze'], ircutils.bold(each['total']))
             irc.reply(output)
     
-    medals = wrap(medals)
+    medals = wrap(medals, [getopts({'mens':'','womens':''}), optional('text')])
 
 Class = Olympics
 
