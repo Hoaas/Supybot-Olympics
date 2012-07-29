@@ -31,7 +31,7 @@ class Olympics(callbacks.Plugin):
         return base64.b64decode(string)
     
     def medals(self, irc, msg, args, optlist, optcountry):
-        """<mens|womens> <country>
+        """<--mens | --womens> <country>
         Display current medal count for the olympics. Use --mens or --womens to display totals via gender. Specify optional country to only display that country.
         """
  
@@ -43,7 +43,7 @@ class Olympics(callbacks.Plugin):
                     header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Mens)", 'red')
                     url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_men.html'
                 if key == 'womens':
-                    header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Mens)", 'red')
+                    header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Womens)", 'red')
                     url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_women.html'
         
         if not url: # default to all
@@ -81,11 +81,11 @@ class Olympics(callbacks.Plugin):
         # cheap way of only showing what someone searches for.
         if optcountry: 
             for each in object_list:
-                if each['country'].startswith(optcountry):
+                if each['country'].lower().startswith(optcountry.lower()):
                     output = "{0:20} G: {1:5} S: {2:5} B: {3:5} T: {4:7}".format(ircutils.underline(each['country']),\
                         ircutils.bold(each['gold']), ircutils.bold(each['silver']), ircutils.bold(each['bronze']), ircutils.bold(ircutils.bold(each['total'])))
                     irc.reply(output)
-                    return
+            return
 
                  
         # red title/top
