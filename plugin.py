@@ -43,7 +43,7 @@ class Olympics(callbacks.Plugin):
                     header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Mens)", 'red')
                     url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_men.html'
                 if key == 'womens':
-                    header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Mens)", 'red')
+                    header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Womens)", 'red')
                     url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_women.html'
         
         if not url: # default to all
