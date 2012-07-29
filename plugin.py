@@ -11,6 +11,7 @@ import re
 import collections
 import datetime
 import time
+import string
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -26,6 +27,51 @@ class Olympics(callbacks.Plugin):
     """Add the help for "@plugin help Olympics" here
     This should describe *how* to use this plugin."""
     threaded = True
+    
+    def olympicscores(self, irc, msg, args, optsport):
+        """[sport]
+        Display scores for various Olympic Sports. Sport must be one of: menssoccer, womenssoccer, mensbb, womensbb
+        """
+        
+        # needs some optdate handling. 
+    
+        validsports = {'menssoccer':'188', 'womenssoccer':'364', 'mensbb':'223', 'womensbb':'345'}
+    
+        if optsport not in validsports:
+            irc.reply("Invalid sport. Must be one of: %s" % validsports.keys())
+            return
+    
+        url = 'http://m.espn.go.com/extra/olympics/scoreboard'
+        #url += '?date=%s' % datetime.datetime.now().strftime("%Y%m%d")
+        url += '?eventId=%s&wjb=' % validsports[optsport]
+
+        try:
+            req = urllib2.Request(url)
+            html = (urllib2.urlopen(req)).read()
+        except:
+            irc.reply("Failed to open: %s" % url)
+            return
+            
+        
+        soup = BeautifulSoup(html)
+        #eventdate = soup.find('div', attrs={'class':'sub dark'}).text
+        #eventdate = eventdate.split('|') # cheap way to get date.
+        table = soup.find('table', attrs={'class':'wide'})
+        rows = table.findAll('tr')
+
+        append_list = []
+
+        for row in rows:
+            event = row.find('td').text
+            append_list.append(event)
+    
+        output = string.join([item for item in append_list], " | ")
+    
+        irc.reply(output)
+        #irc.reply(ircutils.mircColor(eventdate[0].strip(), 'red') + " :: " + output)
+    
+    olympicscores = wrap(olympicscores, [('somethingWithoutSpaces')])
+    
     
     def olympicevents(self, irc, msg, args, optsport):
         """[sport]
