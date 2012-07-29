@@ -9,6 +9,8 @@ from BeautifulSoup import BeautifulSoup
 import urllib2
 import re
 import collections
+import datetime
+import time
 
 import supybot.utils as utils
 from supybot.commands import *
@@ -25,10 +27,112 @@ class Olympics(callbacks.Plugin):
     This should describe *how* to use this plugin."""
     threaded = True
     
-    def _b64decode(self, string):
-        """Returns base64 encoded string."""
-        import base64
-        return base64.b64decode(string)
+    def olympicevents(self, irc, msg, args, optsport):
+        """[sport]
+        Show olympic events in sport for date.
+        """
+        
+        sportstable = {'soccer':'19', 'basketball':'7', 'volleyball':'46', 'diving':'16'}
+        
+        if optsport not in sportstable:
+            irc.reply("Invalid sport. Must be one of: %s" % sportstable.keys())
+            return
+                
+        today = datetime.datetime.now().strftime("%A, %B %d")
+        
+        url = 'http://espn.go.com/olympics/summer/2012/schedule/_/sport/%s' % sportstable[optsport]
+        
+        try:
+            req = urllib2.Request(url)
+            html = (urllib2.urlopen(req)).read()
+        except:
+            irc.reply("Failed to open: %s" % url)
+            return
+            
+        html = html.replace('class="evenrow"', 'class="oddrow"')
+
+        soup = BeautifulSoup(html)
+        table = soup.find('table', attrs={'class':'tablehead'}) 
+
+        rows = table.findAll('tr', attrs={'class':'oddrow'})
+
+        object_list = []
+        
+        for row in rows:
+            time = row.find('td')
+            date = row.findPrevious('tr', attrs={'class':'stathead'}).find('td', attrs={'colspan':'4'})
+            event = time.findNext('td').findNext('td')
+            d = collections.OrderedDict()
+            d['date'] = date.renderContents().strip()
+            d['time'] = time.renderContents().strip()
+            d['event'] = event.renderContents().strip()
+            object_list.append(d)
+            
+        if len(object_list) > 0:
+            header = "Olympic Events Today for %s :: (All times ET)" % optsport.title()
+            irc.reply(ircutils.mircColor(header,'red'))
+            
+            for each in object_list: # fast, not clean. Needs events of the day, etc.
+                if each['date'] == today:
+                    irc.reply("{0:10} {1:100}".format(each['time'], each['event']))
+        else:
+            irc.reply("No events scheduled for today.")
+    
+    olympicevents = wrap(olympicevents, [('somethingWithoutSpaces')])
+
+    def olympicbbgroups(self, irc, msg, args, optgender, optgroup):
+        """[mens|womens] [groupa|groupb]
+        Display Olympic Basketball Group Standings. Must supply gender (mens|womens) and (groupa|groupb)
+        """
+
+        optgender = optgender.lower().strip()
+        
+        if optgender != "mens" and optgender != "womens":
+            irc.reply("Gender must be: mens or womens")
+            return
+        
+        optgroup = optgroup.lower().strip()
+        
+        if optgroup != "groupa" and optgroup != "groupb":
+            irc.reply("Group must be: groupa or groupb")
+            return
+        
+        if optgender == "mens":
+                url = 'http://www.nbcolympics.com/sports/sport=basketball/library/home/_groups_men.html'
+        else:
+                url = 'http://www.nbcolympics.com/sports/sport=basketball/library/home/_groups_women.html'
+
+        self.log.info(url)
+        self.log.info(optgroup)
+        
+        try:
+            req = urllib2.Request(url)
+            html = (urllib2.urlopen(req)).read()
+        except:
+            irc.reply("Failed to load: %s" % url)
+            return
+            
+        soup = BeautifulSoup(html)
+        
+        if optgroup == "groupa":
+            group = soup.find('div', attrs={'class':'or-groupL'})
+        else:
+            group = soup.find('div', attrs={'class':'or-groupR'})
+            
+        tbody = group.find('tbody')
+        rows = tbody.findAll('tr')
+
+        irc.reply("{0:5} {1:7} {2:4} {3:4}".format("RK", "TEAM", "GP", "PTS"))
+
+        for row in rows:
+            rank = row.find('td', attrs={'class':'or-c'})
+            country = rank.findNext('span', attrs={'class':'or-flag'}).find('img')['alt']
+            gp = rank.findNext('td', attrs={'class':'or-c'})
+            pts = gp.findNext('td', attrs={'class':'or-c or-hl'})
+            irc.reply("{0:5} {1:10} {2:4} {3:4}".format(rank.text, ircutils.bold(country), gp.text, pts.text))
+    
+    olympicbbgroups = wrap(olympicbbgroups, [('somethingWithoutSpaces'), ('somethingWithoutSpaces')])    
+
     
     def medals(self, irc, msg, args, optlist, optcountry):
         """<--mens | --womens> <country>
