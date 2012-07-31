@@ -181,12 +181,12 @@ class Olympics(callbacks.Plugin):
 
     
     def medals(self, irc, msg, args, optlist, optcountry):
-        """<--mens | --womens> <country>
+        """[--mens | --womens] [[--num <value>] <country>]
         Display current medal count for the olympics. Use --mens or --womens to display totals via gender. Specify optional country to only display that country.
         """
  
         url = None
-               
+        num = 3
         if optlist:
             for (key, value) in optlist:
                 if key == 'mens':
@@ -195,6 +195,14 @@ class Olympics(callbacks.Plugin):
                 if key == 'womens':
                     header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker (Womens)", 'red')
                     url = 'http://www.nbcolympics.com/medals/library/2012-standings/tabs/medals/_women.html'
+                if key == 'num':
+                    if value < 1:
+                        num = 1
+                    elif value > 10:
+                        irc.reply('Please. Max 10.')
+                        return
+                    else:
+                        num = value
         
         if not url: # default to all
             header = ircutils.mircColor("2012 London Summer Olympics Medal Tracker", 'red')
@@ -227,7 +235,17 @@ class Olympics(callbacks.Plugin):
             d['bronze'] = bronze.renderContents().strip()
             d['total'] = total.renderContents().strip()
             object_list.append(d)
-                
+
+        if self.registryValue('sortByGold', msg.args[0]):
+            bronze = lambda x: int(x.get('bronze'))
+            object_list = sorted(object_list, key=bronze, reverse=True)
+
+            silver = lambda x: int(x.get('silver'))
+            object_list = sorted(object_list, key=silver, reverse=True)
+
+            gold = lambda x: int(x.get('gold'))
+            object_list = sorted(object_list, key=gold, reverse=True)
+
         # cheap way of only showing what someone searches for.
         if optcountry: 
             for each in object_list:
@@ -246,11 +264,11 @@ class Olympics(callbacks.Plugin):
         irc.reply(output)
 
         # iterate over the top3
-        for each in object_list[0:3]:
+        for each in object_list[0:num]:
             output = "{0:20} {1:5} {2:5} {3:5} {4:7}".format(each['country'], each['gold'], each['silver'], each['bronze'], ircutils.bold(each['total']))
             irc.reply(output)
     
-    medals = wrap(medals, [getopts({'mens':'','womens':''}), optional('text')])
+    medals = wrap(medals, [getopts({'mens':'','womens':'','num':('int')}), optional('text')])
 
 Class = Olympics
 

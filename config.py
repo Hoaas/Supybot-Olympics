@@ -24,6 +24,6 @@ Olympics = conf.registerPlugin('Olympics')
 # This is where your configuration variables (if any) should go.  For example:
 # conf.registerGlobalValue(Olympics, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-
+conf.registerChannelValue(Olympics, 'sortByGold', registry.Boolean(False, """Sort by number of gold medals instead of total medals."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

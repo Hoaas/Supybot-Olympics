@@ -28,6 +28,7 @@ __contributors__ = {}
 __url__ = '' # 'http://supybot.com/Members/yourname/Olympics/download'
 
 import config
+reload(config) # Only needed if an old version of the plugin have been run.
 import plugin
 reload(plugin) # In case we're being reloaded.
 # Add more reloads here if you add third-party modules and want them to be
