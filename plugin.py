@@ -181,7 +181,7 @@ class Olympics(callbacks.Plugin):
 
     
     def medals(self, irc, msg, args, optlist, optcountry):
-        """[--mens | --womens] [[--num <value>] <country>]
+        """[--mens | --womens] [--num <value>] [<country>]
         Display current medal count for the olympics. Use --mens or --womens to display totals via gender. Specify optional country to only display that country.
         """
  
